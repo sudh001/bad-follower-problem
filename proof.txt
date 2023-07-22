@@ -1,0 +1,143 @@
+Prob:
+	Given:
+		A graph G:(V, Edgs) where 
+			V = {v1, v2, ..., vn}; 
+			Edgs = {... (vi, vj, eij) ...} where eij is the weight of the edge between eij;
+		the graph is fully connected;
+		a traveller T aims to reach vdest and initially starts at vstart;
+		T moves between vertices along edges based on this rule:
+			Let T be at vi
+			if vi == vdest: T stops moving
+			else T moves to:
+				{
+					vr: vi -(eir)-> vr is part of the shortest path from vi to vdest; 
+						goes here with a prob of p 
+					vj: j != r,
+						goes here with a prob of (1 - p)/(degree(vi) - 1)
+				} if(degree(vi) > 1)
+
+				else{
+					moves to next legal vertex wih prob 1
+				}
+	
+	What is the average distane T travels from vstart to vdest given V, Edgs, p?
+
+NOTE: TO see the final result without the proof, just scroll down!
+
+
+Ans:
+	Let E(vi -> vdest) be the expected disteance T travels from vi to vdest 
+	let vr be next the vertex along the shortest path from vi to vdest.
+
+	to calculate the prob of a path PATH = (v1, v2 ... vn)
+		prob(PATH) = reduce_prod(
+			for t in range(1, n + 1),
+			1 if degree(PATH[t]) == 1
+			p elif PATH[t] -> PATH[t + 1] is part of the shortest path
+			else (1 - p)/(degree(PATH[t] - 1))
+		)
+	Based on the constraints, we can see that from any vertex vi, traveller T will eventually reach vdest
+		=> sum(for every PATH from vi to vdest, prob(PATH)) = 1 	// Remember this result as it will be used later !
+
+
+	wkt:
+		E(vi -> vdest) = sum(
+			for every path PATH from vi -> vdest,
+			Prob(PATH) * len(PATH)
+		)
+
+	all paths from vi -> vdest must have a prefix of vi -> vr -> ... or vi -> vj -> ...
+	with this knowledge, we can factor set of all paths based on its prefix
+
+	therefore,
+		E(vi -> vdest) = 
+			sum(
+				for every path PATH vi -> vr -> ... -> vdest,
+				prob(PATH) * len(PATH)
+			) // part 1 
+			+
+			sum(
+				for every path PATH vi -> vj -> ... -> vdest such that vj != vr,
+				prob(PATH) * len(PATH)
+			) // part 2
+
+	A useful result:
+		sum(
+			for every path PATH vi -> vx -> ... -> vdest,
+			prob(PATH) * len(PATH)
+		) = 
+		prob(vi -> vx) * eix + prob(vi -> vx) * sum(
+			for every path PATH vx -> ... -> vdest,
+			prob(PATH) * len(PATH)
+		) = prob(vi -> vx) * eix + prob(vi -> vx) * E(vx -> vdest) -------- result 2
+		Proof:
+			sum(
+				for every path PATH vi -> vx -> ... -> vdest,
+				prob(PATH) * len(PATH)
+			) = sum(
+				for every path PATH vi -> vx -> ...  -> vdest,
+				prob(vi -> vx) * prob(PATH[1:]) * (eix + len(PATH[1:]))
+			) = 
+			prob(vi -> vx) * sum(
+				for every path PATH vi -> vx -> ...  -> vdest,
+				prob(PATH[1:]) * eix
+			) + prob(vi -> vx) * sum(
+				for every path PATH vi -> vx -> ...  -> vdest,
+				prob(PATH[1:]) * len(PATH[1:])
+			) = 
+			prob(vi -> vx) * eix * sum(
+				for every path PATH vx -> ...  -> vdest,  // note that vi -> vx -> ... -> vdest PATH variable can be changed to vx -> ... -> vdest 
+				prob(PATH) 		// PATH[1:] where PATH is vi -> vx -> ... -> vdest is basically vx -> ... vdest
+			) + prob(vi -> vx) * sum(
+				for every path PATH vx -> ... -> vdest,
+				prob(PATH) * len(PATH)
+			) = 
+			prob(vi -> vx) * eix * 1 + prob(vi -> vx) * E(vx -> vdest)
+
+
+		
+	part 1 simplification:
+		sum(
+			for every path PATH vi -> vr -> ... -> vdest,
+			prob(PATH) * len(PATH)
+		) = prob(vi -> vr) * eir + prob(vi -> vr) * E(vr -> vdest) // using result 2
+		= p * eir * 1 + p * E(vr -> vdest)
+	
+
+	part 2 simplification:
+		sum(
+			for every path PATH vi -> vj -> ... -> vdest such that vj != vr,
+			prob(PATH) * len(PATH)
+		) = 
+		sum(
+			for every vj immidiatly reachable from vi; vj != vr,
+			sum(
+				for every path PATH vi -> vj -> ... -> vdest,
+				prob(PATH) * len(PATH)
+			)
+		) = 
+		sum(
+			for every vj immidiatly reachable from vi; vj != vr,
+			prob(vi -> vj) * eij + prob(vi -> vj) * E(vj -> vdest) // using result 2
+		) = 
+		sum(
+			for every vj immidiatly reachable from vi; vj != vr,
+			(1 - p)/(degree(vi) - 1) * (eij + E(vj -> vdest))
+		)
+	
+	using both the simplifications,
+
+		E(vi -> vdest) = 
+			p * (eir + E(vr -> vdest)) +
+			sum(
+				for every vj immidiatly reachable from vi; vj != vr,
+				(1 - p)/(degree(vi) - 1) * (eij + E(vj -> vdest))
+			) ----------------------- FINAL RESULT --------------------------------
+		
+		we have N equations like this (1 for each vertex) with N variables (E(vx -> vn)); (Note: E(vdest -> vdest) = 0 is also included in these equations)
+		these equations can be solved using linear algebra techniques effeciently
+
+		cheers!!
+
+
+			
